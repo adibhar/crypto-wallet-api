@@ -5,38 +5,49 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"fmt"
-	"strings"
-	"math/big"
 	"encoding/hex"
+	"fmt"
+	"math/big"
+	"strings"
 )
 
 type Transaction struct {
-	ID            uint      `gorm:"primaryKey"`
-	Sender       string    `json:"sender"`
-	Receiver     string    `json:"receiver"`
-	Amount       float64   `json:"amount"`
-	Signature    string    `json:"signature"`
+	ID        uint   `gorm:"primaryKey"`
+	Sender    string `json:"sender"`
+	Receiver  string `json:"receiver"`
+	Amount    float64 `json:"amount"`
+	Signature string  `json:"signature"`
+	BlockID   uint   `json:"block_id"`
+	Block     Block  `gorm:"foreignKey:BlockID"`
 }
 
-func GenerateKeyPair() (*ecdsa.PrivateKey, error) {
-	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-}
+func (t *Transaction) Sign(privateKey *ecdsa.PrivateKey) error {
 
-func (t* Transaction) Sign(privateKey *ecdsa.PrivateKey) error {
-	data := t.Sender + t.Receiver + fmt.Sprintf("%f", t.Amount);
-	hash := sha256.Sum256([]byte(data));
+	amountInCents := int64(t.Amount * 100)
+	data := t.Sender + t.Receiver + fmt.Sprintf("%d", amountInCents)
+
+
+	hash := sha256.Sum256([]byte(data))
+
+	
 	r, s, err := ecdsa.Sign(rand.Reader, privateKey, hash[:])
 	if err != nil {
-		return err;
+		return err
 	}
+
+
 	t.Signature = fmt.Sprintf("%x:%x", r, s)
-	return nil;
+	return nil
 }
 
+
 func (t *Transaction) Verify(publicKey *ecdsa.PublicKey) bool {
-	data := t.Sender + t.Receiver + fmt.Sprintf("%f", t.Amount)
+
+	amountInCents := int64(t.Amount * 100)
+	data := t.Sender + t.Receiver + fmt.Sprintf("%d", amountInCents)
+
 	hash := sha256.Sum256([]byte(data))
+
 
 	parts := strings.Split(t.Signature, ":")
 	if len(parts) != 2 {
@@ -48,9 +59,24 @@ func (t *Transaction) Verify(publicKey *ecdsa.PublicKey) bool {
 		return false
 	}
 
+
 	var r, s big.Int
 	r.SetBytes(rBytes)
 	s.SetBytes(sBytes)
 
+
 	return ecdsa.Verify(publicKey, hash[:], &r, &s)
+}
+
+func GenerateKeyPair() (*ecdsa.PrivateKey, error) {
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	return privateKey, nil
+}
+
+
+func ExtractPublicKeyFromPrivate(privateKey *ecdsa.PrivateKey) *ecdsa.PublicKey {
+	return &privateKey.PublicKey
 }

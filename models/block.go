@@ -8,17 +8,17 @@ import (
 )
 
 type Block struct {
-	ID           uint           `gorm:"primaryKey"`
-	Index        int            `json:"index"`
-	Timestamp    time.Time      `json:"timestamp"`
-	PrevHash     string         `json:"prev_hash"`
-	Hash         string         `json:"hash"`
-	Nonce        int            `json:"nonce"`
-	Transactions []Transaction  `gorm:"foreignKey:BlockID"`
+	ID            uint           `gorm:"primaryKey"`
+	Index         int            `json:"index"`
+	Timestamp     time.Time      `json:"timestamp"`
+	PrevHash      string         `json:"prev_hash"`
+	Hash          string         `json:"hash"`
+	Nonce         int            `json:"nonce"`
+	Transactions  []Transaction `gorm:"foreignKey:BlockID"`
 }
 
 func (b *Block) MineBlock(difficulty int) {
-	txData := serializeTransactions(b.Transactions)
+	txData := b.SerializeTransactions(b.Transactions)
 	hash, nonce := ProofOfWork(b.Index, b.PrevHash, b.Timestamp.String(), txData, difficulty)
 	b.Hash = hash
 	b.Nonce = nonce
@@ -46,7 +46,7 @@ func calculateHash(data string) string {
 	return fmt.Sprintf("%x", rawHash[:])
 }
 
-func serializeTransactions(transactions []Transaction) string {
+func (b *Block) SerializeTransactions(transactions []Transaction) string {
 	var sb strings.Builder
 	for _, tx := range transactions {
 		sb.WriteString(tx.Sender)
