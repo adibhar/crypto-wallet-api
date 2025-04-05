@@ -6,12 +6,15 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
+	"strings"
 	"math/big"
+	"encoding/hex"
 )
 
 type Transaction struct {
+	ID            uint      `gorm:"primaryKey"`
 	Sender       string    `json:"sender"`
-	Receiver     string    `json:"reciever"`
+	Receiver     string    `json:"receiver"`
 	Amount       float64   `json:"amount"`
 	Signature    string    `json:"signature"`
 }
@@ -35,7 +38,19 @@ func (t *Transaction) Verify(publicKey *ecdsa.PublicKey) bool {
 	data := t.Sender + t.Receiver + fmt.Sprintf("%f", t.Amount)
 	hash := sha256.Sum256([]byte(data))
 
+	parts := strings.Split(t.Signature, ":")
+	if len(parts) != 2 {
+		return false
+	}
+	rBytes, err1 := hex.DecodeString(parts[0])
+	sBytes, err2 := hex.DecodeString(parts[1])
+	if err1 != nil || err2 != nil {
+		return false
+	}
+
 	var r, s big.Int
-	fmt.Sscanf(t.Signature, "%x:%x", &r, &s);
-	return ecdsa.Verify(publicKey, hash[:], &r, &s);
+	r.SetBytes(rBytes)
+	s.SetBytes(sBytes)
+
+	return ecdsa.Verify(publicKey, hash[:], &r, &s)
 }

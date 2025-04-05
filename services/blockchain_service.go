@@ -1,18 +1,28 @@
 package services
 
 import (
-	"github.com/adibhar/blockchain-api/models"
-	// "blockchain-api/db" 
-	//TODO: Uncomment above line after finishing database
 	"time"
+	"strings"
+	"fmt"
+	"github.com/adibhar/blockchain-api/models"
 )
 
-const Difficulty = 3;
+const Difficulty = 3
 
-func GenerateBlock(oldBlock models.Block, transactions string) models.Block {
+// GenerateBlock creates a new block using previous block data and list of transactions
+func GenerateBlock(oldBlock models.Block, transactions []models.Transaction) models.Block {
 	timestamp := time.Now()
 
-	hash, nonce := models.ProofOfWork(oldBlock.Index + 1, transactions, oldBlock.Hash, timestamp.String(), Difficulty);
+	// Convert transactions to string for hashing
+	txData := serializeTransactions(transactions)
+
+	hash, nonce := models.ProofOfWork(
+		oldBlock.Index+1,
+		oldBlock.Hash,
+		timestamp.String(),
+		txData,
+		Difficulty,
+	)
 
 	newBlock := models.Block{
 		Index:        oldBlock.Index + 1,
@@ -22,34 +32,48 @@ func GenerateBlock(oldBlock models.Block, transactions string) models.Block {
 		Hash:         hash,
 		Nonce:        nonce,
 	}
-	
-	return newBlock;
+
+	return newBlock
 }
 
-//TODO: RESTRUCTURE CODE BELOW
-
-var Blockchain []models.Block
-
+// GenerateGenesisBlock returns the initial block in the blockchain
 func GenerateGenesisBlock() models.Block {
 	genesisBlock := models.Block{
-		Index:        0,
-		Timestamp:    time.Now(),
-		Transactions: "Genesis Block",
-		PrevHash:     "NONE",
-		Hash:         "0000",
-		Nonce:        0,
+		Index:     0,
+		Timestamp: time.Now(),
+		PrevHash:  "NONE",
+		Hash:      "0000",
+		Nonce:     0,
 	}
 	return genesisBlock
 }
 
-
+// IsBlockValid validates a new block against the previous block
 func IsBlockValid(newBlock, oldBlock models.Block) bool {
-	if oldBlock.Index + 1 != newBlock.Index || oldBlock.Hash != newBlock.PrevHash {
+	if oldBlock.Index+1 != newBlock.Index || oldBlock.Hash != newBlock.PrevHash {
 		return false
 	}
 
-	calculatedHash, _ := models.ProofOfWork(newBlock.Index, newBlock.Transactions, newBlock.PrevHash, newBlock.Timestamp.String(), Difficulty)
+	txData := serializeTransactions(newBlock.Transactions)
+
+	calculatedHash, _ := models.ProofOfWork(
+		newBlock.Index,
+		newBlock.PrevHash,
+		newBlock.Timestamp.String(),
+		txData,
+		Difficulty,
+	)
+
 	return calculatedHash == newBlock.Hash
 }
 
-
+// serializeTransactions converts transactions to a string for hashing
+func serializeTransactions(transactions []models.Transaction) string {
+	var sb strings.Builder
+	for _, tx := range transactions {
+		sb.WriteString(tx.Sender)
+		sb.WriteString(tx.Receiver)
+		sb.WriteString(fmt.Sprintf("%f", tx.Amount))
+	}
+	return sb.String()
+}
