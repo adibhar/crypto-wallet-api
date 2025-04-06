@@ -82,8 +82,12 @@ func SetupRouter() *gin.Engine {
 			return
 		}
 	
-		if err := database.DB.Create(&transaction).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add transaction"})
+		err = database.DB.Create(&transaction).Error
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to add transaction",
+				"details": err.Error(),
+			})
 			return
 		}
 	
@@ -105,7 +109,7 @@ func SetupRouter() *gin.Engine {
 		}
 
 		var transactions []models.Transaction
-		if err := database.DB.Where("block_id = ?", 0).Find(&transactions).Error; err != nil {
+		if err := database.DB.Where("block_id IS NULL").Find(&transactions).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve transactions"})
 			return
 		}
@@ -122,7 +126,7 @@ func SetupRouter() *gin.Engine {
 		}
 
 		for _, tx := range transactions {
-			tx.BlockID = newBlock.ID
+			tx.BlockID = &newBlock.ID
 			if err := database.DB.Save(&tx).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update transaction with block ID"})
 				return
@@ -132,6 +136,19 @@ func SetupRouter() *gin.Engine {
 		c.JSON(http.StatusCreated, gin.H{
 			"message": "Block mined successfully!",
 			"block":   newBlock,
+		})
+	})
+
+	router.GET("/pending", func(c *gin.Context) {
+		var pending []models.Transaction
+	
+		if err := database.DB.Where("block_id IS NULL").Find(&pending).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve pending transactions"})
+			return
+		}
+	
+		c.JSON(http.StatusOK, gin.H{
+			"pending_transactions": pending,
 		})
 	})
 

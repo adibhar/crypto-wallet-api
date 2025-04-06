@@ -50,12 +50,11 @@ func main() {
 	fmt.Printf("Amount: %.2f\n", tx.Amount)
 	fmt.Printf("Signature: %s\n", tx.Signature)
 
-	// Now, you can manually use the transaction data in Postman:
-	// POST to /transact with JSON body:
+	//json body format
 	// {
-	//   "sender": "<Sender Public Key (X:Y)>",
-	//   "receiver": "<Receiver Public Key (X:Y)>",
-	//   "amount": 10.0,
-	//   "signature": "<Transaction Signature>"
+	//   "sender": "<sender public key>",
+	//   "receiver": "<receiver public key>",
+	//   "amount": xx.x,
+	//   "signature": "<hex signature>"
 	// }
 }

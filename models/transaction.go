@@ -13,11 +13,12 @@ import (
 
 type Transaction struct {
 	ID        uint   `gorm:"primaryKey"`
-	Sender    string `json:"sender"`
-	Receiver  string `json:"receiver"`
+	Sender   string `json:"sender" gorm:"type:text"`
+	Receiver string `json:"receiver" gorm:"type:text"`
+	
 	Amount    float64 `json:"amount"`
-	Signature string  `json:"signature"`
-	BlockID   uint   `json:"block_id"`
+	Signature string `json:"signature" gorm:"type:text"`
+	BlockID *uint `json:"block_id"`
 	Block     Block  `gorm:"foreignKey:BlockID"`
 }
 
