@@ -14,6 +14,7 @@ import (
 )
 
 const Difficulty = 3
+const MiningReward = 50.0
 
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
@@ -97,6 +98,48 @@ func SetupRouter() *gin.Engine {
 		})
 
 	})
+	router.POST("/mine/:address", func(c *gin.Context) {
+		address := c.Param("address");
+		
+		if address == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Need miner address"})
+			return;
+		}
+
+		var lastBlock models.Block;	
+		if err := database.DB.Last(&lastBlock).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve last block"})
+			return;
+		}
+
+		var transactions []models.Transaction
+		if err := database.DB.Where("block_id IS NULL").Find(&transactions).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve transactions"})
+			return
+		}
+
+		rewardTx := models.Transaction{
+			Sender:   "SYSTEM",
+			Receiver: address,
+			Amount:   MiningReward,
+			Signature: "reward",
+		}
+		transactions = append(transactions, rewardTx)
+
+		newBlock := services.GenerateBlock(lastBlock, transactions);
+		if err := database.DB.Create(&newBlock).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid new block saved"})
+			return;
+		} 
+
+		c.JSON(http.StatusCreated, gin.H{
+			"Message": "Block mined successfully, reward granted",
+			"block" : newBlock,
+		})
+
+
+	})
+
 	
 	
 

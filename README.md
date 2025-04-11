@@ -1,2 +1,2 @@
 # blockchain-api
-Blockchain API built with Golang for web interface
+Ledger-based crypto wallet API built with Golang for web interface
