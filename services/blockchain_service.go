@@ -3,12 +3,15 @@ package services
 import (
 	"time"
 	"github.com/adibhar/blockchain-api/models"
+	//"fmt"
+	//needed for debugging 
 )
 
 const Difficulty = 3
 
 func GenerateBlock(oldBlock models.Block, transactions []models.Transaction) models.Block {
-	timestamp := time.Now()
+	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
+	
 
 	newBlock := models.Block{
 		Index:        oldBlock.Index + 1,
@@ -16,8 +19,7 @@ func GenerateBlock(oldBlock models.Block, transactions []models.Transaction) mod
 		Transactions: transactions,
 		PrevHash:     oldBlock.Hash,
 	}
-
-	newBlock.MineBlock(Difficulty)
+	newBlock.MineBlock(Difficulty, timestamp)
 
 	return newBlock
 }
@@ -25,8 +27,10 @@ func GenerateBlock(oldBlock models.Block, transactions []models.Transaction) mod
 func GenerateGenesisBlock() models.Block {
 	genesisBlock := models.Block{
 		Index:     0,
-		Timestamp: time.Now(),
+		Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 		PrevHash:  "NONE",
+
+
 		Hash:      "0000",
 		Nonce:     0,
 	}
@@ -39,9 +43,17 @@ func IsBlockValid(newBlock, oldBlock models.Block) bool {
 		return false
 	}
 
+	//debugging stuff
+	timestampStr := newBlock.Timestamp
 	txData := newBlock.SerializeTransactions(newBlock.Transactions)
-	calculatedHash, _ := models.ProofOfWork(newBlock.Index, newBlock.PrevHash, newBlock.Timestamp.String(), txData, Difficulty)
+	// fmt.Println("hashmatching DEBUGGING")
+	// fmt.Println("Index:        ", newBlock.Index)
+	// fmt.Println("PrevHash:     ", newBlock.PrevHash)
+	// fmt.Println("Timestamp:    ",  timestampStr)
+	// fmt.Println("TxData:       ", txData)
+	// fmt.Println("Stored Hash:  ", newBlock.Hash)
+	calculatedHash, _ := models.ProofOfWork(newBlock.Index, newBlock.PrevHash, timestampStr, txData, Difficulty)
 
-	return calculatedHash == newBlock.Hash
+	return calculatedHash == newBlock.Hash // TODO issue in matching hashes
 }
 

@@ -140,8 +140,39 @@ func SetupRouter() *gin.Engine {
 
 	})
 
+	//! DEV ROUTE
+	// router.POST("/reset", func(c *gin.Context) {
+	// 	if err := database.DB.Exec("DELETE FROM transactions").Error; err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete transactions", "details": err.Error()})
+	// 		return
+	// 	}
+	// 	if err := database.DB.Exec("DELETE FROM blocks").Error; err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete blocks", "details": err.Error()})
+	// 		return
+	// 	}
+
+	// 	if err := database.DB.Exec("ALTER SEQUENCE transactions_id_seq RESTART WITH 1").Error; err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to reset transaction ID sequence", "details": err.Error()})
+	// 		return
+	// 	}
+	// 	if err := database.DB.Exec("ALTER SEQUENCE blocks_id_seq RESTART WITH 1").Error; err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to reset block ID sequence", "details": err.Error()})
+	// 		return
+	// 	}
 	
+	// 	genesis := services.GenerateGenesisBlock()
+	// 	if err := database.DB.Create(&genesis).Error; err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create genesis block", "details": err.Error()})
+	// 		return
+	// 	}
 	
+	// 	c.JSON(http.StatusOK, gin.H{
+	// 		"message":       "Blockchain reset with genesis block",
+	// 		"genesis_block": genesis,
+	// 	})
+	// })
+	
+	//! END DEV ROUTE 
 
 
 	router.GET("/mine", func(c *gin.Context) {
@@ -195,5 +226,32 @@ func SetupRouter() *gin.Engine {
 		})
 	})
 
+	router.GET("/verify", func(c *gin.Context) {
+		var blockchain []models.Block
+		if err := database.DB.Preload("Transactions").Find(&blockchain).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	
+		for i := 1; i < len(blockchain); i++ {
+			prevBlock := blockchain[i-1]
+			currBlock := blockchain[i]
+	
+			if !services.IsBlockValid(currBlock, prevBlock) {
+				c.JSON(http.StatusOK, gin.H{
+					"valid": false,
+					"error": "Block validation failed",
+					"index": i,
+				})
+				return
+			}
+		}
+	
+		c.JSON(http.StatusOK, gin.H{
+			"valid":   true,
+			"message": "Blockchain is valid",
+		})
+	})
+	
 	return router
 }

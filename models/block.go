@@ -4,25 +4,26 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"strings"
-	"time"
 )
 
 type Block struct {
 	ID            uint           `gorm:"primaryKey"`
 	Index         int            `json:"index"`
-	Timestamp     time.Time      `json:"timestamp"`
+	Timestamp  string         	`json:"timestamp"`
 	PrevHash      string         `json:"prev_hash"`
 	Hash          string         `json:"hash"`
 	Nonce         int            `json:"nonce"`
 	Transactions  []Transaction `gorm:"foreignKey:BlockID"`
 }
 
-func (b *Block) MineBlock(difficulty int) {
+func (b *Block) MineBlock(difficulty int, timeStampStre string) {
 	txData := b.SerializeTransactions(b.Transactions)
-	hash, nonce := ProofOfWork(b.Index, b.PrevHash, b.Timestamp.String(), txData, difficulty)
+	// timestampStr := b.Timestamp.UTC().Format(time.RFC3339Nano)
+	hash, nonce := ProofOfWork(b.Index, b.PrevHash, timeStampStre, txData, difficulty)
 	b.Hash = hash
 	b.Nonce = nonce
 }
+
 
 func ProofOfWork(index int, prevHash, timestamp, txData string, difficulty int) (string, int) {
 	nonce := 0
