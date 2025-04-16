@@ -82,6 +82,30 @@ func SetupRouter() *gin.Engine {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid signature"})
 			return
 		}
+		var blockchain []models.Block
+		if err := database.DB.Preload("Transactions").Find(&blockchain).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch blockchain"})
+			return
+		}
+
+		var senderBalance float64
+
+		for _, block := range blockchain {
+			for _, tx := range block.Transactions {
+				if tx.Receiver == transaction.Sender {
+					senderBalance += tx.Amount
+				}
+				if tx.Sender == transaction.Sender {
+					senderBalance -= tx.Amount
+				}
+			}
+		}
+	
+		// senderBalance := models.CalculateBalance(transaction.Sender, blockchain)
+		if senderBalance < transaction.Amount {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient funds"})
+			return
+		}
 	
 		err = database.DB.Create(&transaction).Error
 		if err != nil {
