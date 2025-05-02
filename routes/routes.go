@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"encoding/hex"
 	"crypto/elliptic"
+	"github.com/gin-contrib/cors"
 	
 )
 
@@ -18,6 +19,14 @@ const MiningReward = 50.0
 
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, //edit
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowCredentials: true,
+	}))
+
 
 	router.GET("/blockchain", func(c *gin.Context) {
 		var blockchain []models.Block

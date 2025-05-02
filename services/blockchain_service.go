@@ -54,6 +54,6 @@ func IsBlockValid(newBlock, oldBlock models.Block) bool {
 	// fmt.Println("Stored Hash:  ", newBlock.Hash)
 	calculatedHash, _ := models.ProofOfWork(newBlock.Index, newBlock.PrevHash, timestampStr, txData, Difficulty)
 
-	return calculatedHash == newBlock.Hash // TODO issue in matching hashes
+	return calculatedHash == newBlock.Hash
 }
 
